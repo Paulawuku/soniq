@@ -133,8 +133,10 @@ document.addEventListener('input',e=>{const t=e.target;if(t.id=='q'){tq=t.value;
 else if(t.id=='sk'){pos=t.value/1000*dur();if(T[cur].src)ao.currentTime=pos;step=Math.floor(pos/(60/(T[cur].b||100)/2));if(AC)nt=AC.currentTime+.05;upd()}else if(t.id=='vl'){ao.volume=t.value/100;if(M)M.gain.value=t.value/100}else if(t.dataset.r){S[t.dataset.r]=+t.value;eq();save()}});
 document.addEventListener('change',e=>{if(e.target.dataset.r)render()});
 function mount(){T.length=12;S.cat.forEach(x=>{x.id=T.length;T.push(x)});ids=S.cat.length?S.cat.map(x=>x.id):T.map(t=>t.id);ARTISTS=[...new Set(ids.map(i=>T[i].a))]}
-async function loadCat(){if(!S.key)return toast('Paste your Jamendo client ID first');toast('Loading songs…');try{const tg=[['chill','Chill'],['ambient','Focus'],['pop','Romance'],['electronic','Energy'],['relaxing','Sleep']];
-const rs=await Promise.all(tg.map(async([g,m])=>{const r=await fetch('https://api.jamendo.com/v3.0/tracks/?client_id='+encodeURIComponent(S.key)+'&format=json&limit=8&order=popularity_week&imagesize=400&audioformat=mp32&tags='+g);if(!r.ok)throw 0;const j=await r.json();if(!j.results||!j.results.length)throw 0;return j.results.map(x=>({t:x.name,a:x.artist_name,m,src:x.audio,img:x.image,dur:x.duration,h:(x.id*37)%360}))}));
-const seen=new Set(S.cat.map(x=>x.src));rs.flat().forEach(x=>{if(!seen.has(x.src)){seen.add(x.src);S.cat.push(x)}});save();mount();render();toast('Real songs loaded')}catch(e){toast('Could not load songs. Check your client ID and connection.')}}
+async function loadCat(){if(!S.key)return toast('Paste your Jamendo client ID first');toast('Loading songs…');
+const tg=[['chill','Chill'],['ambient','Focus'],['pop','Romance'],['electronic','Energy'],['relaxing','Sleep']];let err='';
+const rs=await Promise.all(tg.map(async([g,m])=>{try{const r=await fetch('https://api.jamendo.com/v3.0/tracks/?client_id='+encodeURIComponent(S.key)+'&format=json&limit=8&order=popularity_week&imagesize=400&audioformat=mp32&tags='+g);if(!r.ok)throw new Error('Server error '+r.status);const j=await r.json();if(j.headers&&j.headers.status=='failed')throw new Error(j.headers.error_message||'Request failed');return (j.results||[]).filter(x=>x.audio).map(x=>({t:x.name,a:x.artist_name,m,src:x.audio,img:x.image,dur:x.duration,h:(x.id*37)%360}))}catch(x){err=x.message=='Failed to fetch'?'Network blocked or offline':x.message;return[]}}));
+const seen=new Set(S.cat.map(x=>x.src));let n=0;rs.flat().forEach(x=>{if(!seen.has(x.src)){seen.add(x.src);S.cat.push(x);n++}});
+if(!S.cat.length)return toast('Could not load songs: '+(err||'no results'));save();mount();render();toast(n+' songs added'+(err?' (some failed: '+err+')':''))}
 mount();render();if(!S.u)setTimeout(signin,400);
 </script></body></html>
